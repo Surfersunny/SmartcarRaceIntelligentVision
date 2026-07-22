@@ -1,0 +1,25 @@
+# Keil 输出
+Objects/
+Listings/
+*.o
+*.obj
+*.lst
+*.map
+*.axf
+*.elf
+*.bin
+*.hex
+
+# Keil 个人配置
+*.uvoptx
+*.uvguix.*
+*.uvopt
+*.uvgui.*
+*.bak
+*.scvd
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
