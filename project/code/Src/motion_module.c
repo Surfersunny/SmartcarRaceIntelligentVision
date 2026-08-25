@@ -14,8 +14,8 @@ extern IMU_TypeDef imu;
 #define DEADBAND          0.1f
 
 // ========== 平移梯形规划 ==========
-#define TRANS_SPEED       600.0f    // 最高速度 mm/s
-#define TRANS_ACCEL       1500.0f   // 加速度 mm/s^2（实测可调）
+#define TRANS_SPEED       800.0f    // 最高速度 mm/s
+#define TRANS_ACCEL       1500.0f   // 加速度 mm/s^2
 #define POS_DEADBAND      2.0f      // 到位死区 mm
 
 // ========== 蠕行精确定位 ==========

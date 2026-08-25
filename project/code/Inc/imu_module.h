@@ -11,6 +11,9 @@ typedef struct {
 	
 		// 角速度零漂值（单位：°/s）
     float gyro_z_offset;
+	
+		// 角速度零漂校准完成标志
+		uint8_t imu_calibrated;
     
     // yaw姿态角（单位：°）
     float yaw;

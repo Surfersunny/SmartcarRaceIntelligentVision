@@ -25,6 +25,7 @@ typedef struct {
     uint8_t type;
     float value;       // 平移:距离(mm), 旋转:角度(°), 识别:phase(1=目标,2=箱子)
     int8_t dir;        // 方向: UP/DOWN/LEFT/RIGHT
+    uint8_t idx;       // 识别对象索引（目标或箱子编号）
 } BFS_MotionCmd_t;
 
 // 运动队列
@@ -48,7 +49,10 @@ uint8_t bfs_find_path(int8_t start_x, int8_t start_y,
 // ========== 第1关：直接推箱子 ==========
 uint8_t bfs_plan_stage1(BFS_MotionQueue_t *mq);
 
-// ========== 第2/3关：识别 + 推箱子 ==========
+// ========== 第2/3关：识别阶段（独立） ==========
+void bfs_plan_recognize(BFS_MotionQueue_t *mq);
+
+// ========== 第2/3关：推送阶段 ==========
 uint8_t bfs_plan_stage23(BFS_MotionQueue_t *mq, uint8_t has_bomb);
 
 // ========== 识别相关函数 ==========
@@ -76,7 +80,7 @@ void bfs_clear_walls_in_area(int8_t x, int8_t y, int8_t radius);
 // ========== 工具函数 ==========
 void bfs_add_move_cmd(BFS_MotionQueue_t *mq, int8_t dir);
 void bfs_add_rotate_cmd(BFS_MotionQueue_t *mq, float angle);
-void bfs_add_recog_cmd(BFS_MotionQueue_t *mq, uint8_t phase);
+void bfs_add_recog_cmd(BFS_MotionQueue_t *mq, uint8_t phase, uint8_t idx);
 uint8_t bfs_return_to_start(BFS_MotionQueue_t *mq, int8_t cur_px, int8_t cur_py);
 
 // ========== 外部变量声明 ==========
@@ -85,5 +89,9 @@ extern int8_t box_y[MAX_BOX];
 extern int8_t target_x[MAX_BOX];
 extern int8_t target_y[MAX_BOX];
 extern uint8_t origin_px, origin_py;
+
+// 推送阶段起点（识别结束后位置），若外部需要可使用
+extern int8_t g_start_px;
+extern int8_t g_start_py;
 
 #endif

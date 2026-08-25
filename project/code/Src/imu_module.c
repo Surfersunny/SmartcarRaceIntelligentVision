@@ -13,16 +13,28 @@ void imu_init(IMU_TypeDef* IMU)
 
 // ========== IMU零漂校准 ==========
 void imu_calibrate(IMU_TypeDef* IMU) {
-		float sum = 0;
-    const int sample_num = 200; 
-    
-    for(int i = 0; i < sample_num; i++)
-    {
-        imu660rb_get_gyro();
-        sum += imu660rb_gyro_transition(imu660rb_gyro_z);
+		static float sum = 0;
+		static int num = 0;
+    const int sample_num = 200;  // 此处确定需要采集多少个值取平均作为零漂
+	  const float threshold = 0.25f;// 过大的角速度应被认为是噪声，进行滤除，不加入零漂计算 此处确定噪声阈值
+	
+		// 如果已经校准完成，直接返回
+    if (IMU->imu_calibrated) {
+        return;
     }
-    
-    IMU->gyro_z_offset = sum / sample_num; // 得到准确的静态零漂值
+		
+    imu660rb_get_gyro();
+	
+    float gyro_z_filtered = imu660rb_gyro_transition(imu660rb_gyro_z);
+    if (fabsf(gyro_z_filtered) < threshold) {
+        sum += gyro_z_filtered;
+        num++;
+    }
+	  
+    if (num >= sample_num) {
+				IMU->imu_calibrated = 1;
+				IMU->gyro_z_offset = sum / sample_num; // 得到准确的静态零漂值
+		}
 }
 
 // ========== 更新 yaw 角度（每 5ms 调用更新一次）==========

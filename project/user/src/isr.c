@@ -49,57 +49,12 @@ uint8_t recog_box_idx = 0;
 uint8_t recog_phase = 0;
 uint8_t recog_total = 0;
 uint8_t data;
-uint8_t angle_idx = 0;
-uint8_t angle_buf[8];
-// ========== 角度数据（0-360） ==========
-extern uint16_t current_angle;
-extern uint8_t canqueryangle;
-uint8_t angle_ready = 0;
 
 // ========== 视觉定位数据 ==========
+static uint8_t vision_parse_state = 0;  // 0=等待X, 1=解析X, 2=等待Y, 3=解析Y, 4=等待A
+uint8_t vision_ready = 0;
 float vision_x = 0.0f;
 float vision_y = 0.0f;
-float vision_angle = 0.0f;
-uint8_t vision_ready = 0;
-
-// ========== 解析状态 ==========
-uint8_t parse_state = 0;
-uint8_t parse_buf[32];
-uint8_t parse_idx = 0;
-
-// ========== 解析视觉数据（A{angle}X{x}Y{y}） ==========
-static void parse_vision_data(void) {
-    if (parse_idx == 0) return;
-    parse_buf[parse_idx] = '\0';
-    int angle = 0, x = 0, y = 0;
-    int i = 1;  // 跳过 'A'
-    
-    while (i < parse_idx && parse_buf[i] >= '0' && parse_buf[i] <= '9') {
-        angle = angle * 10 + (parse_buf[i] - '0');
-        i++;
-    }
-    if (i < parse_idx && parse_buf[i] == 'X') {
-        i++;
-        while (i < parse_idx && parse_buf[i] >= '0' && parse_buf[i] <= '9') {
-            x = x * 10 + (parse_buf[i] - '0');
-            i++;
-        }
-    }
-    if (i < parse_idx && parse_buf[i] == 'Y') {
-        i++;
-        while (i < parse_idx && parse_buf[i] >= '0' && parse_buf[i] <= '9') {
-            y = y * 10 + (parse_buf[i] - '0');
-            i++;
-        }
-    }
-    
-    vision_angle = (float)angle;
-    vision_x = (float)x;
-    vision_y = (float)y;
-    vision_ready = 1;
-    parse_state = 0;
-    parse_idx = 0;
-}
 
 // ========== 外部函数声明 ==========
 extern void bfs_set_target_id(int idx, int id);
@@ -173,32 +128,46 @@ void LPUART4_IRQHandler(void) {
             }
             
             // ============================================================
-            // 2. 角度数据（A开头 a结尾，0-360）
+            // 2. 视觉定位数据接收（X{x}Y{y}A 格式）
             // ============================================================
-            if (data == 'A') {
-                // 开始接收角度，清空缓存
-                memset(angle_buf, 0, sizeof(angle_buf));
-                angle_idx = 0;
+            if (data == 'X' && vision_parse_state == 0) {
+                // 开始解析视觉数据
+                vision_parse_state = 1;
+                vision_x = 0.0f;
+                vision_y = 0.0f;
                 continue;
             }
             
-            if (data == 'a') {
-                // 角度结束，解析
-                if (angle_idx > 0) {
-                    int val = 0;
-                    for (int i = 0; i < angle_idx; i++) {
-                        val = val * 10 + (angle_buf[i] - '0');
-                    }
-                    //current_angle = val;
+            if (vision_parse_state == 1) {
+                // 解析X值
+                if (data >= '0' && data <= '9') {
+                    vision_x = vision_x * 10 + (data - '0');
+                    continue;
+                } else if (data == 'Y') {
+                    vision_parse_state = 2;
+                    continue;
+                } else {
+                    // 格式错误，重置
+                    vision_parse_state = 0;
+                    continue;
                 }
-                continue;
             }
             
-            if (data >= '0' && data <= '9') {
-                if (angle_idx < 7) {
-                    angle_buf[angle_idx++] = data;
+            if (vision_parse_state == 2) {
+                // 解析Y值
+                if (data >= '0' && data <= '9') {
+                    vision_y = vision_y * 10 + (data - '0');
+                    continue;
+                } else if (data == 'A') {
+                    // 视觉数据完成
+                    vision_ready = 1;
+                    vision_parse_state = 0;
+                    continue;
+                } else {
+                    // 格式错误，重置
+                    vision_parse_state = 0;
+                    continue;
                 }
-                continue;
             }
             
             // ============================================================
